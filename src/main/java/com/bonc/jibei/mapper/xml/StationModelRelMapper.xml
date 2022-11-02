@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.bonc.jibei.mapper.StationModelRelMapper">
+    <select id="selectStationModelRelVoList" resultType="com.bonc.jibei.vo.StationModelRelVo">
+        SELECT
+        rel.id AS id,
+        rel.station_id AS stationId,
+        station.station_name AS stationName,
+        rel.create_time AS createTime
+        FROM
+        jb_station_cfg_rel rel
+        INNER JOIN jb_station station ON rel.station_id = station.station_id
+        WHERE
+        1 =1
+        <if test="reportId != null ">
+            and rel.cfg_id=#{reportId}
+        </if>
+
+    </select>
+</mapper>

@@ -1,0 +1,242 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.bonc.jibei.mapper.NumericalStatisticsMapper">
+
+
+    <select id="selMonitoringAnalysis" resultType="com.bonc.jibei.vo.NumericalStatisticsVo">
+        SELECT
+        t1.*,
+        t2.*
+        FROM
+        (
+        SELECT
+        <choose>
+            <when test = "flag1=='1'.toString()">
+                round(sum( radiation_dose )/60000,2) AS radiationDose,
+                round(max( peak_irradiance ),2) AS peakIrradiance,
+            </when>
+            <when test = "flag1=='2'.toString()">
+                round( avg( avg_temp ),2) AS avgTemp,
+                round(max( max_temp ),2) AS maxTemp,
+                round( min( min_temp ),2) AS minTemp,
+            </when>
+            <when test = "flag1=='3'.toString()">
+                round(avg( avg_wind_speed ),2) AS avgWindSpeed,
+                round(max( max_wind_speed ),2) AS maxWindSpeed,
+                round(min( min_wind_speed ),2) AS minWindSpeed,
+            </when>
+        </choose>
+        DATE_FORMAT( `data_time`, "%Y-%m" ) data_time
+        FROM
+        jb_numerical_statistics jb
+        LEFT JOIN cloudiip_access_equipment.v_stations_codes cc ON cc.station_id = jb.station_id
+        WHERE
+            1=1
+        <if test="year != null and '' != year">
+        and DATE_FORMAT( `data_time`, "%Y" )=  #{year}
+        </if>
+        GROUP BY  DATE_FORMAT( `data_time`, "%Y-%m" )
+        ) t1
+        left JOIN (
+        SELECT
+        <choose>
+            <when test = "flag1=='1'.toString()">
+                round(sum( radiation_dose )/60000,2) AS radiationDoseTq,
+                round(sum( peak_irradiance ),2) AS peakIrradianceTq,
+            </when>
+            <when test = "flag1=='2'.toString()">
+                round( avg( avg_temp ),2) AS avgTempTq,
+                round(max( max_temp ),2) AS maxTempTq,
+                round( min( min_temp ),2) AS minTempTq,
+            </when>
+            <when test = "flag1=='3'.toString()">
+                round(avg( avg_wind_speed ),2) AS avgWindSpeedTq,
+                round(max( max_wind_speed ),2) AS maxWindSpeedTq,
+                round(min( min_wind_speed ),2) AS minWindSpeedTq,
+            </when>
+        </choose>
+        DATE_FORMAT( `data_time`, "%Y-%m" ) data_time_tq
+        FROM
+        jb_numerical_statistics jb
+        LEFT JOIN cloudiip_access_equipment.v_stations_codes cc ON cc.station_id = jb.station_id
+        WHERE
+            1=1
+        <if test="year != null and '' != year">
+        and DATE_FORMAT( `data_time`, "%Y" )= #{year}-1
+        </if>
+        GROUP BY
+        DATE_FORMAT( `data_time`, "%Y-%m" )
+       ) t2 ON SUBSTR( t1.data_time, 6, 7 )= SUBSTR( t2.data_time_tq, 6, 7 )
+        ORDER BY t1.data_time
+    </select>
+    <select id="selMonitoringAnalysisDq" resultType="com.bonc.jibei.vo.NumericalStatisticsVo">
+        SELECT
+        <choose>
+            <when test = "flag1=='1'.toString()">
+                round(sum( radiation_dose )/60000,2) AS radiationDose,
+                round(sum( peak_irradiance ),2) AS peakIrradiance,
+            </when>
+            <when test = "flag1=='2'.toString()">
+                round( sum( avg_temp ),2) AS avgTemp,
+                round(sum( max_temp ),2) AS maxTemp,
+                round( sum( min_temp ),2) AS minTemp,
+            </when>
+            <when test = "flag1=='3'.toString()">
+                round(sum( avg_wind_speed ),2) AS avgWindSpeed,
+                round(sum( max_wind_speed ),2) AS maxWindSpeed,
+                round(sum( min_wind_speed ),2) AS minWindSpeed,
+            </when>
+        </choose>
+        DATE_FORMAT( `data_time`, "%m" ) data_time,cc.aname
+        FROM
+        jb_numerical_statistics jb
+        LEFT JOIN cloudiip_access_equipment.v_stations_codes cc ON cc.station_id = jb.station_id
+        WHERE
+            1=1
+        <if test="year != null and '' != year">
+        and DATE_FORMAT( `data_time`, "%Y" )=  #{year}
+        </if>
+        GROUP BY  DATE_FORMAT( `data_time`, "%m" ),cc.aname
+        UNION
+        SELECT
+        <choose>
+            <when test = "flag1=='1'.toString()">
+                round(sum( radiation_dose )/60000,2) AS radiationDose,
+                round(sum( peak_irradiance ),2) AS peakIrradiance,
+            </when>
+            <when test = "flag1=='2'.toString()">
+                round( sum( avg_temp ),2) AS avgTemp,
+                round(sum( max_temp ),2) AS maxTemp,
+                round( sum( min_temp ),2) AS minTemp,
+            </when>
+            <when test = "flag1=='3'.toString()">
+                round(sum( avg_wind_speed ),2) AS avgWindSpeed,
+                round(sum( max_wind_speed ),2) AS maxWindSpeed,
+                round(sum( min_wind_speed ),2) AS minWindSpeed,
+            </when>
+        </choose>
+        DATE_FORMAT( `data_time`, "%m" ) data_time,
+        '冀北' as aname
+        FROM
+        jb_numerical_statistics jb
+        WHERE 1=1
+        <if test="year != null and '' != year">
+        and DATE_FORMAT( `data_time`, "%Y" )=  #{year}
+        </if>
+        GROUP BY
+        DATE_FORMAT( `data_time`, "%m" )
+    </select>
+
+    <select id="selRadiationDoseDistributed" resultType="com.bonc.jibei.vo.RadiationDoseDistributedVo">
+            SELECT
+        <choose>
+            <when test = "flag1=='1'.toString()">
+                jb.ghi_value
+            </when>
+            <when test = "flag1=='2'.toString()">
+                jb.temp_value
+            </when>
+            <when test = "flag1=='3'.toString()">
+                jb.spd_value
+            </when>
+        </choose> as value,
+                round( sum( jb.cnt )/97/24/60,2) cnt
+        <choose>
+        <when test = "flag=='1'.toString()">
+            ,cc.aname
+        </when>
+        </choose>
+            FROM
+        <choose>
+            <when test = "flag1=='1'.toString()">
+                jb_distributed_radiation_dose
+            </when>
+            <when test = "flag1=='2'.toString()">
+                jb_distributed_avg_temp
+            </when>
+            <when test = "flag1=='3'.toString()">
+                jb_distributed_wind_speed
+            </when>
+        </choose>
+                 jb
+                LEFT JOIN cloudiip_access_equipment.v_stations_codes cc ON cc.station_id = jb.station_id
+                WHERE 1=1
+        <if test="year != null and '' != year">
+            and  DATE_FORMAT( `data_time`, "%Y" )= #{year}
+        </if>
+            GROUP BY
+        <choose>
+            <when test = "flag1=='1'.toString()">
+                jb.ghi_value ORDER BY CAST(jb.ghi_value AS DECIMAL);
+            </when>
+            <when test = "flag1=='2'.toString()">
+                jb.temp_value ORDER BY CAST(jb.temp_value AS DECIMAL);
+            </when>
+            <when test = "flag1=='3'.toString()">
+                jb.spd_value ORDER BY CAST(jb.spd_value AS DECIMAL);
+            </when>
+        </choose>
+        <choose>
+        <when test = "flag=='1'.toString()">
+            ,cc.aname
+            UNION
+            SELECT
+            jb.ghi_value AS value,
+            sum( jb.cnt ) cnt,
+            "冀北" as aname
+            FROM
+            jb_distributed_radiation_dose jb
+            WHERE 1=1
+            <if test="year != null and '' != year">
+                and  DATE_FORMAT( `data_time`, "%Y" )= #{year}
+            </if>
+            GROUP BY
+            <choose>
+                <when test = "flag1=='1'.toString()">
+                    jb.ghi_value ORDER BY CAST(jb.ghi_value AS DECIMAL);
+                </when>
+                <when test = "flag1=='2'.toString()">
+                    jb.temp_value ORDER BY CAST(jb.temp_value AS DECIMAL);
+                </when>
+                <when test = "flag1=='3'.toString()">
+                    jb.spd_value ORDER BY CAST(jb.spd_value AS DECIMAL);
+                </when>
+            </choose>
+        </when>
+        </choose>
+    </select>
+
+    <select id="selSunHoursTrend" resultType="com.bonc.jibei.vo.SunHoursTrendVo">
+        SELECT
+        sum(case when jb.sunlight_duration &gt;= 3 and jb.sunlight_duration &lt; 6 then 1 else 0 end) over3,
+        sum(case when jb.sunlight_duration  &gt;= 6 then 1 else 0 end) over6,
+        cc.aname,
+        NULL as over3Tq,
+        NULL as over6Tq
+        from  jb_numerical_statistics jb
+        LEFT JOIN cloudiip_access_equipment.v_stations_codes cc ON cc.station_id = jb.station_id
+        where 1=1
+        <if test="year != null and '' != year">
+        and DATE_FORMAT( `data_time`, "%Y" )= #{year}
+        </if>
+        GROUP BY aname
+        UNION
+        SELECT
+        NULL as over3,
+        NULL as over6,
+        cc.aname ,
+        sum(case when jb.sunlight_duration &gt;= 3 and jb.sunlight_duration &lt; 6 then 1 else 0 end) over3Tq,
+        sum(case when jb.sunlight_duration  &gt;= 6 then 1 else 0 end) over6Tq
+        FROM
+        jb_numerical_statistics jb
+        LEFT JOIN cloudiip_access_equipment.v_stations_codes cc ON cc.station_id = jb.station_id
+        where
+            1=1
+        <if test="year != null and '' != year">
+          and  DATE_FORMAT( `data_time`, "%Y" )= #{year}-1
+        </if>
+        GROUP BY
+        aname
+    </select>
+
+</mapper>
